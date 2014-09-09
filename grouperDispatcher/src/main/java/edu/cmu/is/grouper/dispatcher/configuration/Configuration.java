@@ -15,7 +15,6 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 package edu.cmu.is.grouper.dispatcher.configuration;
 
 import java.io.BufferedReader;
-import java.io.DataInputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -25,7 +24,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import edu.cmu.is.grouper.dispatcher.Constants;
 import edu.cmu.is.grouper.dispatcher.exceptions.BadConfigurationException;
@@ -45,7 +45,7 @@ public enum Configuration {
 
 	private String filename;
 
-	private Logger log = Logger.getLogger(this.getClass().getName());
+	private Logger log = LoggerFactory.getLogger(this.getClass().getName());
 
 	private Boolean configChangeDetected = true; // initialize to true so will load on first call
 
@@ -53,35 +53,48 @@ public enum Configuration {
 
 	// note that the Main class initially loads the configuration file
 	public synchronized void loadConfiguration() throws BadConfigurationException, IOException {
+		FileInputStream fstream = null;
+		BufferedReader reader = null;
+		
 		log.info("in Configuration.loadConfiguration!!");
 		if (!ConfigurationDirectoryChangeWatcher.isRunning()) {
 			log.debug("ConfigurationDirectoryChangeWatcher  is NOT running. going to start it up.");
 			ConfigurationDirectoryChangeWatcher.startUpConfigurationDirectoryChangeWatcher(this.getPath(), this.getFilename());
 		}
 		configEntries.clear();
-		FileInputStream fstream = new FileInputStream(this.getPath() + this.getFilename());
-		DataInputStream in = new DataInputStream(fstream);
-		BufferedReader reader = new BufferedReader(new InputStreamReader(in));
-		String line = null;
-		while ((line = reader.readLine()) != null) {
-			if (line.startsWith("#") || line.trim() == null || line.trim().isEmpty()) {
-				continue;
+		try {
+			fstream = new FileInputStream(this.getPath() + this.getFilename());
+			reader = new BufferedReader(new InputStreamReader(fstream));
+			String line = null;
+			while ((line = reader.readLine()) != null) {
+				if (line.startsWith("#") || line.trim() == null || line.trim().isEmpty()) {
+					continue;
+				}
+				String[] parts = line.split("\\|");
+				if (parts.length != 4) {
+					throw new BadConfigurationException("each config entry must have 4 parts separated by | (pipe)! The bad line: " + line);
+				}
+				ConfigurationEntry ce = new ConfigurationEntry(parts[0], parts[1], parts[2], parts[3]);
+				if (ce.getQueue().equalsIgnoreCase(FROM_QUEUE)) {
+					throw new BadConfigurationException("The Queue in the Config File matches the Queue that the Dispatcher is Reading From!: " + line);
+				}
+				configEntries.add(ce);
+				// log.info("adding to config: " + ce);
 			}
-			String[] parts = line.split("\\|");
-			if (parts.length != 4) {
-				throw new BadConfigurationException("each config entry must have 4 parts separated by | (pipe)! The bad line: " + line);
-			}
-			ConfigurationEntry ce = new ConfigurationEntry(parts[0], parts[1], parts[2], parts[3]);
-			if (ce.getQueue().equalsIgnoreCase(FROM_QUEUE)) {
-				throw new BadConfigurationException("The Queue in the Config File matches the Queue that the Dispatcher is Reading From!: " + line);
-			}
-			configEntries.add(ce);
-			// log.info("adding to config: " + ce);
 		}
-		in.close();
+		finally {
+			if (reader != null) {
+				reader.close();
+				fstream = null;
+			}
+			if (fstream != null) {
+				fstream.close();
+				fstream = null;
+			}
+		}
 		log.info("******* Configuration Loaded.  New Configuration *********");
 		for (ConfigurationEntry ce : configEntries) {
-			log.info(ce);
+			log.info(ce.toString());
 		}
 		log.info("******* Configuration Loaded. END  New Configuration *********");
 		configChangeDetected = false;

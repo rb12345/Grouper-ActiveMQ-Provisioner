@@ -15,18 +15,22 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 package edu.cmu.grouper.changelog.consumer;
 
+import java.io.FileInputStream;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Properties;
 import java.util.Set;
 
+import javax.jms.ConnectionFactory;
 import javax.jms.Connection;
 import javax.jms.DeliveryMode;
 import javax.jms.Destination;
 import javax.jms.MessageProducer;
 import javax.jms.Session;
 import javax.jms.TextMessage;
+import javax.naming.Context;
+import javax.naming.InitialContext;
 
-import org.apache.activemq.ActiveMQConnectionFactory;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.GnuParser;
@@ -38,11 +42,11 @@ import org.apache.commons.logging.LogFactory;
 
 import edu.internet2.middleware.grouper.Group;
 import edu.internet2.middleware.grouper.GroupFinder;
-import edu.internet2.middleware.grouper.GroupTypeFinder;
 import edu.internet2.middleware.grouper.GrouperSession;
 import edu.internet2.middleware.grouper.Member;
 import edu.internet2.middleware.grouper.MemberFinder;
 import edu.internet2.middleware.grouper.SubjectFinder;
+import edu.internet2.middleware.grouper.attr.value.AttributeValueDelegate;
 import edu.internet2.middleware.grouper.changeLog.ChangeLogConsumerBase;
 import edu.internet2.middleware.grouper.changeLog.ChangeLogEntry;
 import edu.internet2.middleware.grouper.changeLog.ChangeLogLabels;
@@ -58,7 +62,7 @@ public class ConsumerMain extends ChangeLogConsumerBase {
 	private static final Log LOG = LogFactory
 			.getLog(edu.cmu.grouper.changelog.consumer.ConsumerMain.class);
 	private GrouperSession gs;
-	private ActiveMQConnectionFactory connectionFactory;
+	private ConnectionFactory connectionFactory;
 	private static Connection connection;
 
 	/**
@@ -70,13 +74,6 @@ public class ConsumerMain extends ChangeLogConsumerBase {
 			List<ChangeLogEntry> changeLogEntryList,
 			ChangeLogProcessorMetadata changeLogProcessorMetadata) {
 
-		String brokerURL;
-		String username;
-		String password;
-
-		brokerURL = ConsumerProperties.getBrokerUrl();
-		username = ConsumerProperties.getUsername();
-		password = ConsumerProperties.getPassword();
 		long currentId = 0;
 
 		for (ChangeLogEntry changeLogEntry : changeLogEntryList) {
@@ -84,10 +81,13 @@ public class ConsumerMain extends ChangeLogConsumerBase {
 			break;
 		}
 
+		Properties properties = new Properties();
+		Context context;
 		try {
+			properties.load(new FileInputStream("/etc/grouper-api/qpid.properties"));
+			context = new InitialContext(properties);
 			// Create a Connection Factory and connection
-			connectionFactory = new ActiveMQConnectionFactory(username,
-					password, brokerURL);
+			connectionFactory = (ConnectionFactory) context.lookup("qpidConnectionFactory");
 			connection = connectionFactory.createConnection();
 			connection.start();
 		} catch (Exception e) {
@@ -414,6 +414,7 @@ public class ConsumerMain extends ChangeLogConsumerBase {
 	static public String getGroupAttribute(String groupName,
 			String attributeName, Group group) {
 		String result;
+		AttributeValueDelegate attributeValues;
 
 		// for delete, group may no longer exist
 		if (group == null) {
@@ -424,7 +425,8 @@ public class ConsumerMain extends ChangeLogConsumerBase {
 
 		// try to get the attribute value
 		try {
-			result = group.getAttributeValue(attributeName, false, false);
+			attributeValues = group.getAttributeValueDelegate();
+			result = attributeValues.retrieveValueString(attributeName);
 			if (result == null)
 				result = "";
 		} catch (Exception e) {
@@ -531,10 +533,7 @@ public class ConsumerMain extends ChangeLogConsumerBase {
 
 	public static void main(String[] args) {
 
-		String brokerURL;
-		String username;
-		String password;
-		ActiveMQConnectionFactory connectionFactory;
+		ConnectionFactory connectionFactory;
 
 		Options options = new Options();
 		options.addOption("all", false, "Sync all grouper groups");
@@ -557,14 +556,14 @@ public class ConsumerMain extends ChangeLogConsumerBase {
 			System.exit(1);
 		}
 
-		brokerURL = ConsumerProperties.getBrokerUrl();
-		username = ConsumerProperties.getUsername();
-		password = ConsumerProperties.getPassword();
-
+		Properties properties = new Properties();
+		Context context;
 		try {
+			properties.load(new FileInputStream("/etc/grouper-api/qpid.properties"));
+			context = new InitialContext(properties);
 			// Create a Connection Factory and connection
-			connectionFactory = new ActiveMQConnectionFactory(username,
-					password, brokerURL);
+			connectionFactory = (ConnectionFactory) context.lookup("qpidConnectionFactory");
+
 			connection = connectionFactory.createConnection();
 			connection.start();
 		} catch (Exception e) {
@@ -573,8 +572,7 @@ public class ConsumerMain extends ChangeLogConsumerBase {
 		}
 
 		try {
-			GrouperSession session = GrouperSession.start(SubjectFinder
-					.findRootSubject());
+			GrouperSession session = GrouperSession.startRootSession();
 
 			if (line.hasOption("all")) {
 				syncAllGroups(session);
@@ -609,8 +607,7 @@ public class ConsumerMain extends ChangeLogConsumerBase {
 	}
 
 	private static void syncAllGroups(GrouperSession session) {
-		Set<Group> groups = GroupFinder.findAllByType(session,
-				GroupTypeFinder.find("base", false));
+		Set<Group> groups = new GroupFinder().findGroups();
 
 		for (Group group : groups) {
 			LOG.debug("Full sync group: " + group.getName());

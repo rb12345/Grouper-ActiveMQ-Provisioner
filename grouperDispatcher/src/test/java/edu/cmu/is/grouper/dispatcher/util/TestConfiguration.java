@@ -12,6 +12,7 @@ import edu.cmu.is.grouper.dispatcher.configuration.Configuration;
 import edu.cmu.is.grouper.dispatcher.configuration.ConfigurationEntry;
 import edu.cmu.is.grouper.dispatcher.exceptions.BadConfigurationException;
 
+@SuppressWarnings("unused")
 public class TestConfiguration extends TestCase {
 
 	Configuration cs;

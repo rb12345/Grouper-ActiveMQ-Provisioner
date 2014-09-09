@@ -7,6 +7,7 @@ import org.junit.Test;
 import edu.cmu.is.grouper.dispatcher.configuration.ConfigurationEntry;
 import edu.cmu.is.grouper.dispatcher.exceptions.BadConfigurationException;
 
+@SuppressWarnings("unused")
 public class TestConfigurationEntry extends TestCase {
 
 	@Test

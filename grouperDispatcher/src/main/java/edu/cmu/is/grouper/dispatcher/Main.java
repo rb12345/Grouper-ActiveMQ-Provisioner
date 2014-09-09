@@ -18,7 +18,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import edu.cmu.is.grouper.dispatcher.configuration.Configuration;
 import edu.cmu.is.grouper.dispatcher.configuration.PropertyUtil;
@@ -29,7 +30,7 @@ import edu.cmu.is.grouper.dispatcher.exceptions.BadConfigurationException;
  */
 public class Main {
 
-	private static Logger staticLog = Logger.getLogger("edu.cmu.is.grouper.dispatcher.Main");
+	private static Logger staticLog = LoggerFactory.getLogger("edu.cmu.is.grouper.dispatcher.Main");
 
 	private static List<Thread> consumerThreadList = new ArrayList<Thread>();
 

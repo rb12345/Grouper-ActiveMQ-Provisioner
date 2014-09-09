@@ -22,7 +22,6 @@ import org.apache.commons.logging.LogFactory;
 
 import edu.internet2.middleware.grouper.Group;
 import edu.internet2.middleware.grouper.GroupFinder;
-import edu.internet2.middleware.grouper.GroupTypeFinder;
 import edu.internet2.middleware.grouper.GrouperSession;
 import edu.internet2.middleware.grouper.Member;
 import edu.internet2.middleware.grouper.SubjectFinder;
@@ -112,8 +111,7 @@ public class USDUWrapper extends USDU {
 	private static Set<String> getExcludeGroups(GrouperSession s,
 			String groupPattern) {
 
-		Set<Group> groups = GroupFinder.findAllByType(s,
-				GroupTypeFinder.find("base", false));
+		Set<Group> groups = new GroupFinder().findGroups();
 		
 		Set<String> groupList = new HashSet<String>();
 

@@ -13,14 +13,18 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 package edu.cmu.is.grouper.dispatcher;
 
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 
 import javax.jms.Connection;
+import javax.jms.ConnectionFactory;
 import javax.jms.Destination;
 import javax.jms.JMSException;
 import javax.jms.Message;
@@ -29,6 +33,9 @@ import javax.jms.MessageProducer;
 import javax.jms.Queue;
 import javax.jms.Session;
 import javax.jms.TextMessage;
+import javax.naming.Context;
+import javax.naming.InitialContext;
+import javax.naming.NamingException;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
@@ -36,10 +43,8 @@ import javax.xml.bind.PropertyException;
 import javax.xml.bind.Unmarshaller;
 import javax.xml.transform.stream.StreamSource;
 
-import org.apache.activemq.ActiveMQConnectionFactory;
-import org.apache.activemq.RedeliveryPolicy;
-import org.apache.activemq.command.ActiveMQTextMessage;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.gson.Gson;
 
@@ -50,29 +55,12 @@ import edu.cmu.is.grouper.dispatcher.exceptions.BadConfigurationException;
 
 public class Dispatcher implements Runnable {
 
-	private static Logger staticLog = Logger
+	private static Logger staticLog = LoggerFactory
 			.getLogger("Dispatcher (staticLog)");
 
-	private Logger log = Logger.getLogger(this.getClass().getName());
+	private Logger log = LoggerFactory.getLogger(this.getClass().getName());
 
 	private Configuration config = Configuration.INSTANCE;
-
-	private static long sleepWhileWaitForMessagesTimeInMillisecs = Long
-			.parseLong(PropertyUtil.getProp("sleepWaitingMessagesMillisecs",
-					"3000"));
-
-	private static long maxMessagesPerThread = Long.parseLong(PropertyUtil
-			.getProp("maxMessagesPerThread", "10000"));
-
-	private static String fromQueue = PropertyUtil.getProp("fromQueue",
-			"grouper.changelog.dispatcher");
-
-	private static String amqUser = PropertyUtil.getProp("activemq.user");
-
-	private static String amqDestUrl = PropertyUtil
-			.getProp(
-					"activemq.url",
-					"failover://(ssl://activemq-01.example.edu:61616,ssl://activemq-02.example.edu:61616:wq!)");
 
 	private Map<String, MessageProducer> producersByQueueMap = new HashMap<String, MessageProducer>();
 
@@ -89,24 +77,24 @@ public class Dispatcher implements Runnable {
 		log.info("****  ActiveMQ User: " + Dispatcher.getAmqUser());
 		log.info("****  ActiveMQ URL: " + Dispatcher.getAmqDestUrl());
 		log.info("****  FROM_QUEUE: " + Dispatcher.getFromQueue() + "\n\n");
-		String amqPwd = null;
+		ConnectionFactory connectionFactory = null;
+		Properties properties = new Properties();
+		Context context;
 		try {
-			amqPwd = PropertyUtil.getProp("activemq.pwd");
-		} catch (Exception e) {
-			log.error(
-					"Exception!! trying to get activemq.pwd property "
-							+ e.getLocalizedMessage(), e);
+			properties.load(new FileInputStream("/etc/grouper-api/qpid.properties"));
+			context = new InitialContext(properties);
+			// Create a Connection Factory and connection
+			connectionFactory = (ConnectionFactory) context.lookup("qpidConnectionFactory");
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
 			e.printStackTrace();
-			throw new RuntimeException(
-					"Exception!! trying to get activemq.pwd property "
-							+ e.getLocalizedMessage());
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (NamingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
-		ActiveMQConnectionFactory connectionFactory = new ActiveMQConnectionFactory(
-				Dispatcher.getAmqUser(), amqPwd, Dispatcher.getAmqDestUrl());
-		//
-		RedeliveryPolicy rp = new RedeliveryPolicy();
-		rp.setMaximumRedeliveries(-1);
-		connectionFactory.setRedeliveryPolicy(rp);
 		//
 		Connection connection = null;
 		Message message = null;
@@ -173,9 +161,9 @@ public class Dispatcher implements Runnable {
 					}
 					// log.debug(Thread.currentThread().getName() +
 					// ". message receive completed. ");
-					if (message instanceof ActiveMQTextMessage) {
-						ActiveMQTextMessage msg = (ActiveMQTextMessage) message;
-						log.info("message GroupID: " + msg.getGroupID()
+					if (message instanceof TextMessage) {
+						TextMessage msg = (TextMessage) message;
+						log.info("message GroupID: " + msg.getStringProperty("JMSXGroupID")
 								+ "\tmessage text: " + msg.getText());
 						chgLogMsg = processChangeLogMessage(message, session);
 						session.commit();
@@ -319,8 +307,7 @@ public class Dispatcher implements Runnable {
 
 	private ChangeLogMessage convertMessageToObject(Message message)
 			throws JAXBException, JMSException {
-		ChangeLogMessage chgLogMsg;
-		ActiveMQTextMessage amqMsg = (ActiveMQTextMessage) message;
+		TextMessage amqMsg = (TextMessage) message;
 		return this.unmarshallXml(amqMsg.getText());
 	}
 

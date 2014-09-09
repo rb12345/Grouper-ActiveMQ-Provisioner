@@ -14,8 +14,6 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 package edu.cmu.is.grouper.dispatcher;
 
-import edu.cmu.is.grouper.dispatcher.configuration.PropertyUtil;
-
 public class Constants {
 
 	public static final String PROPERTIES_DIR_PATH = "/opt/grouperDispatcher/conf/";

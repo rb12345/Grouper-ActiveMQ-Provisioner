@@ -21,7 +21,8 @@ package edu.cmu.is.grouper.dispatcher.configuration;
 import java.io.FileInputStream;
 import java.util.Properties;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import edu.cmu.is.grouper.dispatcher.Constants;
 
@@ -34,7 +35,7 @@ public class PropertyUtil {
 
 	private static Properties properties = new Properties();
 
-	protected static Logger staticLogger = Logger.getLogger(PropertyUtil.class);
+	protected static Logger staticLogger = LoggerFactory.getLogger(PropertyUtil.class);
 
 	private static Long ONE_HOUR = 60L * 60L * 1000L;
 

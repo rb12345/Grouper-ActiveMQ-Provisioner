@@ -17,13 +17,9 @@ package edu.cmu.is.grouper.dispatcher.configuration;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.log4j.Logger;
-
 import edu.cmu.is.grouper.dispatcher.exceptions.BadConfigurationException;
 
 public class ConfigurationEntry {
-
-	private Logger log = Logger.getLogger(this.getClass().getName());
 
 	private static final String REMOVE_GROUP = "deleteGroup";
 

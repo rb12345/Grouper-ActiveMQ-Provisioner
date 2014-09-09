@@ -7,6 +7,7 @@ import org.junit.Test;
 import edu.cmu.is.grouper.dispatcher.ChangeLogMessage;
 import edu.cmu.is.grouper.dispatcher.Dispatcher;
 
+@SuppressWarnings("unused")
 public class TestMessageFormattingOnDispatch {
 
 	@Test

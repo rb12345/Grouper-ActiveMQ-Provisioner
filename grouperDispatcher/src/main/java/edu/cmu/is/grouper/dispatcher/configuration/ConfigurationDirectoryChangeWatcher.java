@@ -31,20 +31,22 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import edu.cmu.is.grouper.dispatcher.exceptions.BadConfigurationException;
 
 public class ConfigurationDirectoryChangeWatcher extends Thread {
 
-	private static Logger staticLog = Logger.getLogger("edu.cmu.is.grouper.dispatcher.configuration.ConfigurationDirectoryChangeWatcher");
+	private static Logger staticLog = LoggerFactory.getLogger("edu.cmu.is.grouper.dispatcher.configuration.ConfigurationDirectoryChangeWatcher");
 
-	private Logger log = Logger.getLogger(this.getClass().getName());
+	private Logger log = LoggerFactory.getLogger(this.getClass().getName());
 
 	private final WatchService watcher;
 
 	private final Map<WatchKey, Path> keys;
 
+	@SuppressWarnings("unused")
 	private final boolean recursive;
 
 	private boolean trace = false;
@@ -159,7 +161,7 @@ public class ConfigurationDirectoryChangeWatcher extends Thread {
 				continue;
 			}
 			for (WatchEvent<?> event : key.pollEvents()) {
-				WatchEvent.Kind kind = event.kind();
+				WatchEvent.Kind<?> kind = event.kind();
 				// TBD - provide example of how OVERFLOW event is handled
 				if (kind == OVERFLOW) {
 					continue;

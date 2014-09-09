@@ -17,16 +17,17 @@ package edu.cmu.is.grouper.dispatcher;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class ShutdownCleanup extends Thread {
 
-	private Logger log = Logger.getLogger(this.getClass().getName());
+	private Logger log = LoggerFactory.getLogger(this.getClass().getName());
 
 	private static List<Thread> consumerThreadList = new ArrayList<Thread>();
 
 	public ShutdownCleanup(List<Thread> threads) {
-		this.consumerThreadList = threads;
+		ShutdownCleanup.consumerThreadList = threads;
 	}
 
 	public void run() {

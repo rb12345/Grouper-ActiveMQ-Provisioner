@@ -16,6 +16,11 @@ package edu.cmu.is.grouper.dispatcher.exceptions;
 
 public class BadConfigurationException extends Exception {
 
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+
 	public BadConfigurationException() {
 		super();
 	}
