@@ -117,7 +117,7 @@ public class ConfigurationEntry {
 	}
 
 	public void setGroup(String group) {
-		this.group = group;
+		this.group = group.trim();
 	}
 
 	public String getQueue() {

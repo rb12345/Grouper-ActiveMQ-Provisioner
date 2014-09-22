@@ -147,22 +147,22 @@ public enum Configuration {
 		// log.debug("in retrieveMatchingConfigs for group: " + group);
 		List<ConfigurationEntry> matchingEntries = new LinkedList<ConfigurationEntry>();
 		for (ConfigurationEntry cs : configEntries) {
-			// log.info("cs.getGroup().trim(): " + cs.getGroup().trim());
-			if (cs.getGroup().trim().equals("*")) {
+			// log.info("cs.getGroup(): " + cs.getGroup());
+			if (cs.getGroup().equals("*")) {
 				// log.debug("adding ConfigEntry");
 				matchingEntries.add(cs);
 				continue;
 			}
 			if (cs.getGroup().contains("*")) {
 				// log.debug("group contains star");
-				String grpStart = this.getGroupWild(cs.getGroup().trim());
-			//	log.debug("for compare --> grpStart: " + grpStart.toLowerCase() + "  input group: " + group.trim().toLowerCase());
-				if (group.trim().toLowerCase().startsWith(grpStart.toLowerCase())) {
+				String grpStart = this.getGroupWild(cs.getGroup());
+			//	log.debug("for compare --> grpStart: " + grpStart + "  input group: " + group);
+				if (group.startsWith(grpStart)) {
 					// log.debug("adding ConfigEntry.  group starts with grpStart: " + grpStart);
 					matchingEntries.add(cs);
 				}
 			} else {
-				if (cs.getGroup().equalsIgnoreCase(group)) {
+				if (cs.getGroup().equals(group)) {
 					matchingEntries.add(cs);
 				}
 			}
@@ -174,7 +174,7 @@ public enum Configuration {
 		int indStar = groupWithStar.indexOf("*");
 		String result = groupWithStar.substring(0, indStar);
 	//	log.debug("groupWithStar.result: "+result);
-		return result;
+		return result.trim();
 	}
 
 	public synchronized Boolean getConfigChangeDetected() {
