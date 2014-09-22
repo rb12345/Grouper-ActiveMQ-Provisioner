@@ -19,6 +19,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -123,7 +124,7 @@ public enum Configuration {
 	}
 
 	public synchronized List<ConfigurationEntry> retrieveMatchingConfigurationsForGroupAndOperation(String group, String operation) throws BadConfigurationException, IOException {
-		List<ConfigurationEntry> matchOnGroupAndOp = new ArrayList<ConfigurationEntry>();
+		List<ConfigurationEntry> matchOnGroupAndOp = new LinkedList<ConfigurationEntry>();
 		List<ConfigurationEntry> matchOnGroup = this.retrieveMatchingConfigurationsForGroup(group);
 		// log.debug("going to loop through config entries that match on group to see which match on operation.  input group: " + group + "  input operation: " + operation);
 		for (ConfigurationEntry ce : matchOnGroup) {
@@ -144,7 +145,7 @@ public enum Configuration {
 		// log.info("in getConfigEntriesForGroup.  configChangeDetected: " + getConfigChangeDetected());
 		checkIfNeedConfigReload();
 		// log.debug("in retrieveMatchingConfigs for group: " + group);
-		List<ConfigurationEntry> matchingEntries = new ArrayList<ConfigurationEntry>();
+		List<ConfigurationEntry> matchingEntries = new LinkedList<ConfigurationEntry>();
 		for (ConfigurationEntry cs : configEntries) {
 			// log.info("cs.getGroup().trim(): " + cs.getGroup().trim());
 			if (cs.getGroup().trim().equals("*")) {
