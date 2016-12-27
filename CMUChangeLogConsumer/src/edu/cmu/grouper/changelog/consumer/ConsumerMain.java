@@ -762,7 +762,7 @@ public class ConsumerMain extends ChangeLogConsumerBase {
 			} catch (Exception e) {
 				LOG.error("Error sending activemq message ", e);
 			}
-			LOG.info("Full Sync privlege completed sucessfully for group: "
+			LOG.info("Full Sync privilege completed sucessfully for group: "
 					+ group.getName());
 		}
 	}
