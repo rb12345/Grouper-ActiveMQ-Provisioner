@@ -11,8 +11,6 @@ Redistribution and use in source and binary forms, with or without modification,
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.*/
 
-
-
 package edu.cmu.grouper.changelog.consumer;
 
 import java.util.HashSet;
@@ -114,6 +112,7 @@ public class ConsumerMain extends ChangeLogConsumerBase {
 
 			for (ChangeLogEntry changeLogEntry : changeLogEntryList) {
 				Member member;
+				String groupName;
 
 				currentId = changeLogEntry.getSequenceNumber();
 
@@ -124,7 +123,7 @@ public class ConsumerMain extends ChangeLogConsumerBase {
 
 				if (changeLogEntry
 						.equalsCategoryAndAction(ChangeLogTypeBuiltin.GROUP_ADD)) {
-					String groupName = changeLogEntry
+					groupName = changeLogEntry
 							.retrieveValueForLabel(ChangeLogLabels.GROUP_ADD.name);
 
 					if (groupName == null) {
@@ -136,7 +135,7 @@ public class ConsumerMain extends ChangeLogConsumerBase {
 					}
 				} else if (changeLogEntry
 						.equalsCategoryAndAction(ChangeLogTypeBuiltin.GROUP_UPDATE)) {
-					String groupName = changeLogEntry
+					groupName = changeLogEntry
 							.retrieveValueForLabel(ChangeLogLabels.GROUP_UPDATE.name);
 					String groupDescription = changeLogEntry
 							.retrieveValueForLabel(ChangeLogLabels.GROUP_UPDATE.description);
@@ -171,7 +170,7 @@ public class ConsumerMain extends ChangeLogConsumerBase {
 					}
 				} else if (changeLogEntry
 						.equalsCategoryAndAction(ChangeLogTypeBuiltin.GROUP_DELETE)) {
-					String groupName = changeLogEntry
+					groupName = changeLogEntry
 							.retrieveValueForLabel(ChangeLogLabels.GROUP_DELETE.name);
 					if (groupName == null) {
 						LOG.error("No group name for group delete change type. Skipping sequence: "
@@ -184,12 +183,10 @@ public class ConsumerMain extends ChangeLogConsumerBase {
 					}
 				} else if (changeLogEntry
 						.equalsCategoryAndAction(ChangeLogTypeBuiltin.MEMBERSHIP_ADD)) {
-					String groupName = 
-							changeLogEntry
-									.retrieveValueForLabel(ChangeLogLabels.MEMBERSHIP_ADD.groupName);
-					member = getMemberFromId(
-							changeLogEntry
-									.retrieveValueForLabel(ChangeLogLabels.MEMBERSHIP_ADD.memberId));
+					groupName = changeLogEntry
+							.retrieveValueForLabel(ChangeLogLabels.MEMBERSHIP_ADD.groupName);
+					member = getMemberFromId(changeLogEntry
+							.retrieveValueForLabel(ChangeLogLabels.MEMBERSHIP_ADD.memberId));
 
 					if (groupName == null) {
 						LOG.error("No group name for membership add change type. Skipping sequence:"
@@ -197,16 +194,18 @@ public class ConsumerMain extends ChangeLogConsumerBase {
 					} else {
 						if (member != null) {
 							String memberName = null;
-							
-							if (member.getSubjectType().toString().equals("person")) {
-								memberName =  member.getSubjectId();
+
+							if (member.getSubjectType().toString()
+									.equals("person")) {
+								memberName = member.getSubjectId();
 								String mesgIsMemberOf = getIsMemberOfAddedMessage(
 										groupName, memberName);
-								writeMessage(mesgIsMemberOf, groupName, currentId);
+								writeMessage(mesgIsMemberOf, groupName,
+										currentId);
 							} else {
 								memberName = member.getName();
 							}
-							
+
 							String mesg = getGroupMemberAddedMessage(groupName,
 									memberName);
 							writeMessage(mesg, groupName, currentId);
@@ -214,12 +213,10 @@ public class ConsumerMain extends ChangeLogConsumerBase {
 					}
 				} else if (changeLogEntry
 						.equalsCategoryAndAction(ChangeLogTypeBuiltin.MEMBERSHIP_DELETE)) {
-					String groupName = 
-							changeLogEntry
-									.retrieveValueForLabel(ChangeLogLabels.MEMBERSHIP_DELETE.groupName);
-					member = getMemberFromId(
-							changeLogEntry
-									.retrieveValueForLabel(ChangeLogLabels.MEMBERSHIP_DELETE.memberId));
+					groupName = changeLogEntry
+							.retrieveValueForLabel(ChangeLogLabels.MEMBERSHIP_DELETE.groupName);
+					member = getMemberFromId(changeLogEntry
+							.retrieveValueForLabel(ChangeLogLabels.MEMBERSHIP_DELETE.memberId));
 
 					if (groupName == null) {
 						LOG.error("No group name for membership delete change type. Skipping sequence: "
@@ -227,22 +224,96 @@ public class ConsumerMain extends ChangeLogConsumerBase {
 					} else {
 						if (member != null) {
 							String memberName = null;
-							
-							if (member.getSubjectType().toString().equals("person")) {
-								memberName =  member.getSubjectId();
+
+							if (member.getSubjectType().toString()
+									.equals("person")) {
+								memberName = member.getSubjectId();
 								String mesgIsMemberOf = getIsMemberOfDeletedMessage(
-										groupName ,memberName);
-								writeMessage(mesgIsMemberOf, groupName, currentId);
+										groupName, memberName);
+								writeMessage(mesgIsMemberOf, groupName,
+										currentId);
 							} else {
 								memberName = member.getName();
 							}
-							String mesg = getGroupMemberDeletedMessage(groupName,
+							String mesg = getGroupMemberDeletedMessage(
+									groupName, memberName);
+							writeMessage(mesg, groupName, currentId);
+						}
+					}
+				} else if (changeLogEntry
+						.equalsCategoryAndAction(ChangeLogTypeBuiltin.PRIVILEGE_ADD)
+						&& (changeLogEntry.retrieveValueForLabel(
+								ChangeLogLabels.PRIVILEGE_ADD.privilegeName)
+								.equals("admin") || changeLogEntry
+								.retrieveValueForLabel(
+										ChangeLogLabels.PRIVILEGE_ADD.privilegeName)
+								.equals("update"))) {
+					groupName = changeLogEntry
+							.retrieveValueForLabel(ChangeLogLabels.PRIVILEGE_ADD.ownerName);
+
+					member = getMemberFromId(changeLogEntry
+							.retrieveValueForLabel(ChangeLogLabels.PRIVILEGE_ADD.memberId));
+
+					if (groupName == null) {
+						LOG.error("No group name for privilege add change type. Skipping sequence: "
+								+ currentId);
+					} else {
+						if (member != null) {
+							String memberName = null;
+
+							if (member.getSubjectType().toString()
+									.equals("person")) {
+								memberName = member.getSubjectId();
+								String mesgPrivilegeAdd = getPrivilegeAddedMessage(
+										groupName, memberName);
+								writeMessage(mesgPrivilegeAdd, groupName,
+										currentId);
+							} else {
+								memberName = member.getName();
+							}
+							String mesg = getPrivilegeAddedMessage(groupName,
 									memberName);
 							writeMessage(mesg, groupName, currentId);
 						}
 					}
-				}
-				else {
+				} else if (changeLogEntry
+						.equalsCategoryAndAction(ChangeLogTypeBuiltin.PRIVILEGE_DELETE)
+						&& (changeLogEntry.retrieveValueForLabel(
+								ChangeLogLabels.PRIVILEGE_ADD.privilegeName)
+								.equals("admin") || changeLogEntry
+								.retrieveValueForLabel(
+										ChangeLogLabels.PRIVILEGE_ADD.privilegeName)
+								.equals("update"))) {
+					groupName = changeLogEntry
+							.retrieveValueForLabel(ChangeLogLabels.PRIVILEGE_DELETE.ownerName);
+
+					member = getMemberFromId(changeLogEntry
+							.retrieveValueForLabel(ChangeLogLabels.PRIVILEGE_DELETE.memberId));
+
+					if (groupName == null) {
+						LOG.error("No group name for privilege add change type. Skipping sequence: "
+								+ currentId);
+					} else {
+						if (member != null) {
+							String memberName = null;
+
+							if (member.getSubjectType().toString()
+									.equals("person")) {
+								memberName = member.getSubjectId();
+								String mesgPrivilegeDelete = getPrivilegeDeletedMessage(
+										groupName, memberName);
+								writeMessage(mesgPrivilegeDelete, groupName,
+										currentId);
+							} else {
+								memberName = member.getName();
+							}
+							String mesg = getPrivilegeDeletedMessage(groupName,
+									memberName);
+							writeMessage(mesg, groupName, currentId);
+						}
+					}
+
+				} else {
 					LOG.debug("Skipping sequence: "
 							+ changeLogEntry.getSequenceNumber()
 							+ " as changelog type "
@@ -338,6 +409,20 @@ public class ConsumerMain extends ChangeLogConsumerBase {
 		return mesg;
 	}
 
+	private String getPrivilegeAddedMessage(String groupName, String uid) {
+		String mesg = "<operation>addPrivilege</operation>";
+		mesg = mesg + "<name><![CDATA[" + groupName + "]]></name>";
+		mesg = mesg + "<memberId><![CDATA[" + uid + "]]></memberId>";
+		return mesg;
+	}
+
+	private String getPrivilegeDeletedMessage(String groupName, String uid) {
+		String mesg = "<operation>removePrivilege</operation>";
+		mesg = mesg + "<name><![CDATA[" + groupName + "]]></name>";
+		mesg = mesg + "<memberId><![CDATA[" + uid + "]]></memberId>";
+		return mesg;
+	}
+
 	private static String getGroupFullSyncMessage(Group group,
 			Set<Member> members) {
 		String mesg = "<operation>fullSync</operation>";
@@ -354,6 +439,28 @@ public class ConsumerMain extends ChangeLogConsumerBase {
 				mesg = mesg + "<member><![CDATA[" + member.getSubjectId()
 						+ "]]></member>";
 			}
+		}
+
+		mesg = mesg + "</memberList>";
+		return mesg;
+	}
+
+	private static String getGroupPrivilegeFullSyncMessage(Group group,
+			Set<Subject> subjects) {
+		String mesg = "<operation>fullSyncPrivilege</operation>";
+		mesg = mesg + "<description><![CDATA[" + group.getDescription()
+				+ "]]></description>";
+		mesg = mesg + "<name><![CDATA[" + group.getName() + "]]></name>";
+		mesg = mesg + "<memberList>";
+
+		for (Subject subject : subjects) {
+				if (subject.getSourceId().equals("ldap")){
+					mesg = mesg + "<member><![CDATA[" + subject.getId()
+								+ "]]></member>";
+				}else{
+					mesg = mesg + "<member><![CDATA[" + subject.getName()
+							+ "]]></member>";
+				}
 		}
 
 		mesg = mesg + "</memberList>";
@@ -539,6 +646,8 @@ public class ConsumerMain extends ChangeLogConsumerBase {
 		Options options = new Options();
 		options.addOption("all", false, "Sync all grouper groups");
 		options.addOption("group", true, "Grouper group to sync");
+		options.addOption("priv", false, "Grouper group for which privileges to sync");
+		options.addOption("allpriv", false, "Sync all grouper groups privileges");
 		options.addOption("usdu", false, "Run USDU on all subject source");
 
 		if (args.length == 0) {
@@ -578,8 +687,14 @@ public class ConsumerMain extends ChangeLogConsumerBase {
 
 			if (line.hasOption("all")) {
 				syncAllGroups(session);
+			} else if (line.hasOption("allpriv")) {
+				syncAllPrivs(session);
 			} else if (line.hasOption("group")) {
-				syncGroup(session, line.getOptionValue("group"));
+				if (line.hasOption("priv")) {
+					syncPriv(session, line.getOptionValue("group"));
+				}else{
+					syncGroup(session, line.getOptionValue("group"));
+				}
 			} else if (line.hasOption("usdu")) {
 				try {
 					USDUWrapper.resolveMembers(session);
@@ -632,6 +747,26 @@ public class ConsumerMain extends ChangeLogConsumerBase {
 		}
 	}
 
+	private static void syncAllPrivs(GrouperSession session) {
+		Set<Group> groups = GroupFinder.findAllByType(session,
+				GroupTypeFinder.find("base", false));
+
+		for (Group group : groups) {
+			LOG.debug("Full sync privilege for group: " + group.getName());
+			Set<Subject> subjects = group.getAdmins();
+			subjects.addAll(group.getUpdaters());
+			String mesg = getGroupPrivilegeFullSyncMessage(group, subjects);
+			LOG.debug(mesg);
+			try {
+				writeMessage(mesg, group.getName(), 0);
+			} catch (Exception e) {
+				LOG.error("Error sending activemq message ", e);
+			}
+			LOG.info("Full Sync privilege completed sucessfully for group: "
+					+ group.getName());
+		}
+	}
+
 	private static void syncGroup(GrouperSession session, String groupName) {
 		Group group = GroupFinder.findByName(session, groupName, false);
 		if (group != null) {
@@ -650,6 +785,29 @@ public class ConsumerMain extends ChangeLogConsumerBase {
 			}
 
 			LOG.info("Full Sync completed sucessfully for group "
+					+ group.getName());
+
+		} else {
+			LOG.debug("Group not found " + groupName);
+		}
+	}
+	
+	private static void syncPriv(GrouperSession session, String groupName) {
+		Group group = GroupFinder.findByName(session, groupName, false);
+		if (group != null) {
+			LOG.debug("Full sync privilege for group : " + group.getName());
+			
+			Set<Subject> subjects = group.getAdmins();
+			subjects.addAll(group.getUpdaters());
+			String mesg = getGroupPrivilegeFullSyncMessage(group, subjects);
+			LOG.debug(mesg);
+			try {
+				writeMessage(mesg, group.getName(), 0);
+			} catch (Exception e) {
+				LOG.error("Error sending activemq message ", e);
+			}
+
+			LOG.info("Full Sync privilege completed sucessfully for group "
 					+ group.getName());
 
 		} else {

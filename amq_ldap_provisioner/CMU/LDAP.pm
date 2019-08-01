@@ -36,6 +36,7 @@ my $_cache;
 my $_env;
 my $_dnattribute;
 my $_memberprefix;
+my $_groupprefix;
 my $_logtoerrorqueue;
 my $_amqmesg;
 my $_ldap;
@@ -494,13 +495,13 @@ sub bulkGroupMemberAdd {
 		"Calling CMU::LDAP::bulkGroupMemberAdd(self, memberdn, $groupdn)");
 
 	my $result;
-	my @attrs = ( $self->{_dnattribute} );
+	my @attrs = ( $self->{_dnattribute});
 	my $entry =
 	  $self->getLdapEntry( "(objectClass=" . $self->{_groupobjectclass} . ")",
 		\@attrs, $groupdn );
 
 	if ( defined $entry ) {
-		$entry->add( 'member' => [@$memberdn] );
+		$entry->add( 'member' => [@$memberdn]);
 
 		$result = $self->ldapUpdate($entry);
 		my $out = Dumper $memberdn;
@@ -543,7 +544,7 @@ sub bulkGroupMemberRemove {
 		"Calling CMU::LDAP::bulkGroupMemberRemove(self, memberdn, $groupdn)");
 
 	my $result;
-	my @attrs = ( $self->{_dnattribute} );
+	my @attrs = ( $self->{_dnattribute});
 	my $entry =
 	  $self->getLdapEntry( "(objectClass=" . $self->{_groupobjectclass} . ")",
 		\@attrs, $groupdn );
@@ -690,6 +691,13 @@ sub ldapSearch {
 				  . $searchstring
 				  . " and base "
 				  . $base );
+		}
+		elsif ( ldap_error_name( $result->code ) eq "LDAP_LOCAL_ERROR" ) {
+			$log->info( "CMU::LDAP::search returned with error name: "
+				  . ldap_error_name( $result->code )
+				  . ", and error description: "
+				  . ldap_error_desc( $result->code ) );
+				  die();
 		}
 		else {
 			$log->error( "CMU::LDAP::search returned with error name: "

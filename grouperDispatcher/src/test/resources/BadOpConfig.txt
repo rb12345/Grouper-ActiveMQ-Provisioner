@@ -5,6 +5,6 @@
 # group-name|queue-name|format
 # OIM groups
 
-App:idm:*|dev.apps.oim.groups| addxMember, removeMember | json
++|App:idm:*|dev.apps.oim.groups| addxMember, removeMember | json
 
 

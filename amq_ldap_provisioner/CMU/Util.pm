@@ -20,30 +20,6 @@ use warnings;
 
 my $log = Log::Log4perl->get_logger();
 
-sub getDnFromGroupname {
-	my ( $syncou, $groupname ) = @_;
-	$log->debug("Calling CMU::Util::getDnFromGroupname($syncou, $groupname)");
-
-	my @list = split( ':', $groupname );
-	my $dn;
-
-	my $count = 0;
-	foreach my $token (@list) {
-		if ( $count != $#list ) {
-			$token = join( "=", "OU", $token );
-		}
-		else {
-			$token = join( "=", "CN", $token );
-		}
-		$count++;
-	}
-
-	$dn = join( ",", reverse(@list), $syncou );
-
-	$log->debug( "groupname " . $groupname . " converted to DN " . $dn );
-	return $dn;
-}
-
 # get items from array @a that are not in array @b
 sub arrayMinus {
 	$log->debug("Calling  CMU::Util::arrayMinus(arrayA, arrayB)");
@@ -143,7 +119,8 @@ sub covertMemberDNListToMembersUidHash($ @) {
                 for my $row ( 0 .. @dn_parts - 1 ) {
                     for my $col ( 0 .. @{ $dn_parts[$row] } - 1 ) {
                         if ( $col == 0 ) {
-                            $groupdn = $dn_parts[$row][$col]{CN};
+                        	my @cn_parts = split(".", $dn_parts[$row][$col]{CN});
+                            $groupdn = $cn_parts[0];
                         }
                         else {
                             $groupdn =

@@ -53,6 +53,7 @@ sub getInstance {
 		$_ad->{_personobjectclass} = $CMU::CFG::_CFG{'AD'}{'personobjectclass'};
 		$_ad->{_dnattribute}       = $CMU::CFG::_CFG{'AD'}{'dnattribute'};
 		$_ad->{_memberprefix}      = $CMU::CFG::_CFG{'AD'}{'memberprefix'};
+		$_ad->{_groupprefix}      = $CMU::CFG::_CFG{'AD'}{'groupprefix'};
 		$_ad->{_env}               = $CMU::CFG::_CFG{'ldap'}{'env'};
 		$_ad->{_logtoerrorqueue}   = $CMU::CFG::_CFG{'ldap'}{'logtoerrorqueue'};
 		$_ad->{_server}            = $_ad->getPdc();
@@ -88,7 +89,7 @@ sub getPdc {
 sub getSAMAccountNameFromLdapEntry {
 	my ( $self, $entry ) = @_;
 	$log->debug(
-		"Calling CMU::LDAP::getSAMAccountNameFromLdapEntry( self, ldapentry)");
+		"Calling CMU::LDAP::AD::getSAMAccountNameFromLdapEntry( self, ldapentry)");
 		
 	my $samaccountname = $entry->get_value("sAMAccountName");
 	$samaccountname =~ s/[\"\[\]:;|=+*?<>\/\\,]/-/g;
@@ -98,17 +99,17 @@ sub getSAMAccountNameFromLdapEntry {
 sub getSAMAccountNameFromGroupName {
 	my ( $self, $groupname ) = @_;
 	$log->debug(
-		"Calling CMU::LDAP::getSAMAccountNameFromGroupName( self, $groupname)");
+		"Calling CMU::LDAP::AD::getSAMAccountNameFromGroupName( self, $groupname)");
 
 	my $samaccountname = join( ".", reverse split( ":", $groupname ) );
-	$samaccountname =~ s/[\"\[\]:;|=+*?<>\/\\,]/-/g;
-	return $samaccountname;
+	$samaccountname =~ s/[\"\[\]:;|=+*?<>\/\\, ]/-/g;
+	return substr($samaccountname, 0, 256);
 }
 
 sub updateSAMAccountName {
 	my ( $self, $dn, $samaccountname ) = @_;
 	$log->debug(
-		"Calling CMU::LDAP::updateSAMAccountName(self, $dn, $samaccountname)");
+		"Calling CMU::LDAP::AD::updateSAMAccountName(self, $dn, $samaccountname)");
 
 	my $result;
 	my @attrs = ( $self->{_dnattribute} );
@@ -312,7 +313,8 @@ sub getGroupDn {
 			$token = join( "=", "OU", escape_dn_value($token) );
 		}
 		else {
-			$token = join( "=", "CN", escape_dn_value($token) );
+			my $samaccountname =  substr($self->getSAMAccountNameFromGroupName($groupname), 0, 64);
+			$token =  $self->{_groupprefix} . escape_dn_value($samaccountname);
 		}
 		$count++;
 	}

@@ -18,6 +18,7 @@ package edu.cmu.is.grouper.dispatcher.configuration;
 
 import java.io.FileInputStream;
 import java.util.Properties;
+import java.util.logging.Level;
 
 import org.apache.log4j.Logger;
 
@@ -27,13 +28,13 @@ import edu.cmu.is.grouper.dispatcher.Constants;
  * 
  * @author hrf
  */
-public class PropertyUtil {
+public class PwPropertyUtil {
+
+	public final static String encryptKey = "%4adkj5nalj4&(876dfnwIIKKlasdrwwekannkh9*7893!~PQWascW";
 
 	private static Properties properties = new Properties();
 
-	protected static Logger staticLogger = Logger.getLogger(PropertyUtil.class);
-
-	private static Long ONE_HOUR = 60L * 60L * 1000L;
+	protected static Logger staticLogger = Logger.getLogger(PwPropertyUtil.class);
 
 	private static Long lastRefresh;
 
@@ -43,7 +44,7 @@ public class PropertyUtil {
 		} else {
 			Long timeSinceLastRefresh = System.currentTimeMillis() - lastRefresh;
 			// staticLogger.info("time since last refresh: " + timeSinceLastRefresh + "  ? is > " + Constants.ONE_HOUR);
-			if (timeSinceLastRefresh > ONE_HOUR) {
+			if (timeSinceLastRefresh > Constants.ONE_HOUR) {
 				// cause to reload all the bakery urls
 				lastRefresh = System.currentTimeMillis();
 				properties = new Properties();
@@ -52,22 +53,27 @@ public class PropertyUtil {
 		}
 	}
 
-	public static synchronized String getProp(String s) {
+	public static synchronized String getProp(String s) throws Exception {
 		clearPropertiesIfTime();
 		if (properties.isEmpty()) {
 			loadProperties();
 		}
-		String value = (String) properties.get(s);
-		// staticLogger.info("Property: " + s + "    value: " + value);
-		return value;
+		StringEncrypter se;
+		try {
+			se = new StringEncrypter(StringEncrypter.DESEDE_ENCRYPTION_SCHEME, encryptKey);
+			return se.decrypt((String) properties.get(s));
+		} catch (Exception ex) {
+			java.util.logging.Logger.getLogger(PwPropertyUtil.class.getName()).log(Level.SEVERE, "Error trying to decrypt property: " + s, ex);
+			return null;
+		}
 	}
 
-	public static String getProp(String s, String defaultProp) {
-		String prop = PropertyUtil.getProp(s);
+	public static String getProp(String s, String defaultProp) throws Exception {
+		String prop = PwPropertyUtil.getProp(s);
 		if (prop == null) {
 			return defaultProp;
 		} else {
-			// staticLogger.fine("returning prop: " + prop + "  for key: " + s);
+			staticLogger.debug("returning prop: " + prop + "  for key: " + s);
 			return prop;
 		}
 	}
@@ -75,12 +81,12 @@ public class PropertyUtil {
 	private static synchronized void loadProperties() {
 		// Read properties file.
 		try {
-			staticLogger.info("*** going to load properties from " + Constants.PROPERTIES_DIR_PATH + Constants.PROPERTIES_FILE_NAME + " ***");
+			// Get the inputstream for the properties file
+			staticLogger.info("Loading Encrypted Properties from " + Constants.PROPERTIES_DIR_PATH + Constants.PROPERTIES_FILE_NAME);
 			properties.load(new FileInputStream(Constants.PROPERTIES_DIR_PATH + Constants.PROPERTIES_FILE_NAME));
-			staticLogger.info("properties read OKay from file: " + Constants.PROPERTIES_DIR_PATH + Constants.PROPERTIES_FILE_NAME);
 		} catch (Exception e) {
-			staticLogger.error("Problem loading properties or initializing webapp - loading  " + Constants.PROPERTIES_FILE_NAME, e);
-			System.out.println("Problem loading properties or initializing webapp - loading  " + Constants.PROPERTIES_FILE_NAME);
+			staticLogger.error("Problem loading PWproperties or initializing webapp ", e);
+			System.out.println("Problem loading PWproperties or initializing webapp ");
 		}
 	}
 }

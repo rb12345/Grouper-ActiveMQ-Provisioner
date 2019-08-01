@@ -10,11 +10,7 @@ Redistribution and use in source and binary forms, with or without modification,
 3. Neither the name of the copyright holder nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.*/
-
-
 package edu.cmu.is.grouper.dispatcher;
-
-import edu.cmu.is.grouper.dispatcher.configuration.PropertyUtil;
 
 public class Constants {
 
@@ -22,16 +18,15 @@ public class Constants {
 
 	public static final String PROPERTIES_FILE_NAME = "grouperDispatcher.properties";
 
-	public static final String PARAM_FROM_QUEUE = "fromQueue";
+	protected static final String PARAM_FROM_QUEUE = "fromQ";
 
 	protected static final String PARAM_ACTIVEMQ_URL = "activemq.url";
 
-	public static final String DEFAULT_ACTIVEMW_URL = "failover://(ssl://activemq-01.example.edu:61616,ssl://activemq-02.example.edu:61616)";
+	protected static final String DEFAULT_ACTIVEMW_URL = "failover://(ssl://identity-activemq-01.andrew.cmu.edu:61616,ssl://identity-activemq-02.andrew.cmu.edu:61616)";
 
 	public static final Long ONE_HOUR = 3600000L;
-	
+
 	public static final String CONFIGURATION_FILE_NAME = "grouperDispatcherConfig.txt";
 
 	public static final String CONFIGURATION_DIR_PATH = "/opt/grouperDispatcher/conf/";
-
 }

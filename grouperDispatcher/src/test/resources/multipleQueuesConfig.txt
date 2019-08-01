@@ -5,12 +5,12 @@
 # group-name|queue-name|format
 # OIM groups
 
-App:idm:*|dev.apps.oim.groups| addMember, removeMember | json
++|App:idm:*|dev.apps.oim.groups| addMember, removeMember | json
 
-App:oim:*|dev.apps.oim.groups| addMember, removeMember |json
++|App:oim:*|dev.apps.oim.groups| addMember, removeMember |json
 
 # ldap 389 groups
-*|dev.apps.oim.newperson.final| * | json
++|*|dev.apps.oim.newperson.final| * | json
 
 # AD groups
 

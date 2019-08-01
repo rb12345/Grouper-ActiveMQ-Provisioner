@@ -54,6 +54,7 @@ our %_CFG = (
 		'ldapqueue' => '/queue/test.389.groups',
 		'errorqueue' => '/queue/389.provisioner.errors',
 	},
+    'batchsize' => 500,
 	'log' => {
 		'file' =>
 		  '/opt/amq_ldap_provisioner/conf/log4perl.conf'

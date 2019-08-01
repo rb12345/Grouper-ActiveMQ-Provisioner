@@ -1,3 +1,5 @@
+#!/usr/bin/perl -w
+
 #Copyright 2014 Carnegie Mellon University
 #All rights reserved.
 
@@ -10,8 +12,6 @@
 #3. Neither the name of the copyright holder nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
 
 #THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-#!/usr/bin/perl -w
 
 use JSON;
 use Log::Log4perl;
@@ -31,12 +31,17 @@ my $log;
 my $activemq;
 my $ldap;
 my $stats_initialized = 0;
+my $done              = 0;
 my $data;
 my $frame;
+my $nextframe;
+my $batchsize = 100;
 
 CMU::CFG::readConfig('configuration.pl');
 Log::Log4perl::init( $CMU::CFG::_CFG{'log'}{'file'} );
 $log = Log::Log4perl->get_logger();
+
+$batchsize = $CMU::CFG::_CFG{'batchsize'};
 
 while (1) {
 	eval {
@@ -44,7 +49,9 @@ while (1) {
 		if ( defined $activemq ) {
 			$frame = $activemq->getStomp()->receive_frame( { timeout => 30 } );
 			while ($frame) {
-				$mesg = $frame->body;
+				$mesg      = $frame->body;
+				$nextframe =
+				  $activemq->getStomp()->receive_frame( { timeout => 0.5 } );
 				if ( defined $mesg ) {
 					$log->debug("Received ActiveMQ message: $mesg");
 					$data = JSON::decode_json($mesg);
@@ -72,22 +79,59 @@ while (1) {
 
 						if ( $data->{"operation"} eq "fullSync" ) {
 							$activemq->processMessageFullSync( $ldap, $data );
+							$activemq->getStomp()->ack( { frame => $frame } );
+							$log->debug(
+"Successfully processed  ActiveMQ message: $mesg"
+							);
+						}elsif ( $data->{"operation"} eq "fullSyncPrivilege" ) {
+							$activemq->processMessageFullSyncPrivilege( $ldap, $data );
+							$activemq->getStomp()->ack( { frame => $frame } );
+							$log->debug(
+"Successfully processed  ActiveMQ message: $mesg"
+							);
 						}
 						elsif ( $data->{"operation"} eq "fullSyncIsMemberOf" ) {
 							$activemq->processMessageFullSyncIsMemberOf( $ldap,
 								$data );
+								$activemq->getStomp()->ack( { frame => $frame } );
+							$log->debug(
+"Successfully processed  ActiveMQ message: $mesg"
+							);
+						}
+						elsif ($data->{"operation"} ne "addMember"
+							&& $data->{"operation"} ne "removeMember" )
+						{
+							$activemq->processMessageChangeLog( $ldap, $data );
+							$activemq->getStomp()->ack( { frame => $frame } );
+							$log->debug(
+"Successfully processed  ActiveMQ message: $mesg"
+							);
 						}
 						else {
-							$activemq->processMessageChangeLog( $ldap, $data );
+							$done =
+							  $activemq->addMessageChangeLogToBatch( $ldap,
+								$frame, $nextframe );
+
+							my @unacked_frames = $activemq->getUnAckedFrames();
+
+							if ( $done || $#unacked_frames == $batchsize ) {
+								$activemq->processMessageChangeLogBatch($ldap);
+								
+								foreach my $unacked_frame (@unacked_frames){
+    								$activemq->getStomp()
+								  ->ack( { frame => $unacked_frame } );
+								  $mesg = $unacked_frame->body;
+								$log->debug(
+									"Successfully processed  ActiveMQ message: "
+									  . $mesg );
+								}
+								
+
+								$done = 0;
+								$activemq->resetChangeLogBatch();
+							}
 						}
-
-						$log->debug(
-							"Successfully processed  ActiveMQ message: $mesg");
-						$activemq->getStomp()->ack( { frame => $frame } );
-						$frame =
-						  $activemq->getStomp()
-						  ->receive_frame( { timeout => 30 } );
-
+						$frame = $nextframe;
 					}
 				}
 			}
@@ -99,24 +143,33 @@ while (1) {
 
 			if ( defined $ldap ) {
 				$ldap->getCache()->purge();
+				$ldap->disconnect();
 			}
 		}
+
+		if ($@) {
+			my @unacked_frames = $activemq->getUnAckedFrames();
+			if (@unacked_frames) {
+				foreach (@unacked_frames) {
+					$mesg = $_->body;
+					$log->debug(
+						"Couldn't process ActiveMQ message: $mesg .. Retrying");
+				}
+			}
+			else {
+				$log->debug(
+					"Couldn't process ActiveMQ message: $mesg .. Retrying");
+			}
+
+			if ( defined $activemq ) {
+				$activemq->disconnect();
+			}
+
+			if ( defined $ldap ) {
+				$ldap->disconnect();
+			}
+			sleep 30;
+		}
 	};
-
-	if ($@) {
-		if ( defined $mesg ) {
-			$log->error(
-				"Couldn't process ActiveMQ message: $mesg .. Retrying" );
-		}
-
-		if ( defined $activemq ) {
-			$activemq->disconnect();
-		}
-
-		if ( defined $ldap ) {
-			$ldap->disconnect();
-		}
-		sleep 30;
-	}
 }
 
